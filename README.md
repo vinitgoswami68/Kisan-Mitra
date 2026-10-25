@@ -4,7 +4,7 @@ A student project: Smart Farming Assistant with a Hindi-first interface.
 
 ## Features
 - Farming questions answered using the Gemini API (backend)
-- Crop photo preview (disease detection is not implemented yet)
+- Crop photo analysis using a Gemini vision-capable model; results are possible causes, not a confirmed diagnosis
 - Weather and mandi prices are currently demo placeholders
 
 ## Requirements
@@ -22,7 +22,7 @@ A student project: Smart Farming Assistant with a Hindi-first interface.
    `npm start`
 6. Open `http://localhost:3000`.
 
-The Express server serves the existing frontend and provides `POST /api/chat`.
+The Express server serves the frontend and provides `POST /api/chat` and `POST /api/crop-diagnosis`. Crop photos must be JPG, PNG or WEBP and no larger than 5 MB.
 
 ## Safety note
-AI farming suggestions are general guidance, not a substitute for local agricultural diagnosis. Verify important treatment decisions with a local agriculture expert/Krishi Vigyan Kendra.
+Photo analysis can be wrong and is not a confirmed agricultural diagnosis. Do not spray or apply treatment based only on the AI result. Verify important treatment decisions with a local agriculture expert/Krishi Vigyan Kendra. Weather and mandi values are demo placeholders, not live data.
