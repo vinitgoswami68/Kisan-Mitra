@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kisan Mitra | Smart Farming Assistant</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon">🌱</span><span>Kisan Mitra<small>SMART FARMING ASSISTANT</small></span></div>
+    <span class="status"><i></i> किसान सहायता डेमो</span>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">खेती का स्मार्ट साथी</p>
+        <h1>नमस्ते किसान जी!<br><span>आपकी फसल, हमारी मदद।</span></h1>
+        <p class="intro">खेती से जुड़े सवाल पूछें, फसल की जानकारी साझा करें और आसान भाषा में मार्गदर्शन पाएँ।</p>
+        <a class="primary-link" href="#ask">सवाल पूछें <span>↓</span></a>
+      </div>
+      <div class="hero-art" aria-label="खेती का चित्र">
+        <div class="sun"></div><div class="cloud cloud-one"></div><div class="cloud cloud-two"></div>
+        <div class="hill hill-back"></div><div class="hill hill-front"></div>
+        <div class="field-lines"></div><div class="plant plant-one">🌾</div><div class="plant plant-two">🌱</div>
+        <div class="art-label">बेहतर खेती, बेहतर कल</div>
+      </div>
+    </section>
+
+    <section class="quick-grid" aria-label="मुख्य सुविधाएँ">
+      <article class="quick-card"><div class="quick-icon green">💬</div><h3>AI खेती सलाह</h3><p>खेती से जुड़े सवाल पूछें</p><a href="#ask">शुरू करें →</a></article>
+      <article class="quick-card"><div class="quick-icon yellow">📷</div><h3>फसल की फोटो</h3><p>फोटो चुनकर जानकारी दें</p><a href="#photo">फोटो चुनें →</a></article>
+      <article class="quick-card"><div class="quick-icon blue">🌦️</div><h3>मौसम</h3><p>मौसम सुविधा का डेमो</p><a href="#weather">देखें →</a></article>
+      <article class="quick-card"><div class="quick-icon orange">📈</div><h3>मंडी भाव</h3><p>नमूना भाव देखें</p><a href="#mandi">देखें →</a></article>
+    </section>
+
+    <section class="content-grid">
+      <section class="panel ask-panel" id="ask">
+        <div class="section-heading"><div><p class="eyebrow">आपकी मदद के लिए</p><h2>खेती का सवाल पूछें</h2></div><span class="bot-icon">🤖</span></div>
+        <p class="muted">उदाहरण: गेहूँ के पत्ते पीले क्यों हो रहे हैं?</p>
+        <form id="questionForm">
+          <label for="question">अपना सवाल लिखें</label>
+          <textarea id="question" rows="3" placeholder="यहाँ हिंदी या English में सवाल लिखें..." required></textarea>
+          <div class="suggestions">
+            <button type="button" class="chip" data-question="गेहूँ के पत्ते पीले क्यों हो रहे हैं?">🌾 गेहूँ</button>
+            <button type="button" class="chip" data-question="टमाटर के पौधे की देखभाल कैसे करें?">🍅 टमाटर</button>
+            <button type="button" class="chip" data-question="फसल में पानी कब देना चाहिए?">💧 सिंचाई</button>
+          </div>
+          <button class="primary-button" type="submit">जवाब देखें <span>→</span></button>
+        </form>
+        <div id="answer" class="answer-box" hidden aria-live="polite"></div>
+        <p class="demo-note">नोट: यह शुरुआती demo है। जवाब नमूना नियमों से बनते हैं, असली AI से नहीं।</p>
+      </section>
+
+      <section class="panel photo-panel" id="photo">
+        <div class="section-heading"><div><p class="eyebrow">फसल की जाँच</p><h2>फसल की फोटो चुनें</h2></div><span class="bot-icon">📸</span></div>
+        <p class="muted">पौधे या पत्ते की साफ फोटो चुनें। अभी यह केवल preview दिखाता है।</p>
+        <label class="upload-area" for="cropPhoto"><span class="upload-symbol">＋</span><strong>फोटो चुनने के लिए क्लिक करें</strong><small>JPG, PNG या WEBP</small></label>
+        <input type="file" id="cropPhoto" accept="image/*" hidden>
+        <div id="photoPreview" class="photo-preview" hidden><img id="previewImage" alt="आपकी चुनी हुई फसल की फोटो"><p id="photoName"></p></div>
+        <div class="notice">⚠️ अभी बीमारी की पहचान नहीं होती। अगले चरण में AI image model जोड़ेंगे।</div>
+      </section>
+    </section>
+
+    <section class="lower-grid">
+      <section class="panel" id="weather">
+        <div class="section-heading"><div><p class="eyebrow">मौसम सहायता</p><h2>मौसम की जानकारी</h2></div><span class="bot-icon">🌤️</span></div>
+        <div class="weather-demo"><span class="weather-emoji">🌤️</span><div><strong>मौसम API अभी नहीं जुड़ी</strong><p>Live तापमान और बारिश की जानकारी अगले चरण में जोड़ेंगे।</p></div></div>
+      </section>
+      <section class="panel" id="mandi">
+        <div class="section-heading"><div><p class="eyebrow">बाजार सहायता</p><h2>नमूना मंडी भाव</h2></div><span class="bot-icon">🧺</span></div>
+        <p class="muted">ये केवल demo के लिए उदाहरण हैं, आज के वास्तविक भाव नहीं।</p>
+        <div class="price-row"><span>🌾 गेहूँ</span><strong>₹2,400 / क्विंटल*</strong></div>
+        <div class="price-row"><span>🌾 धान</span><strong>₹2,200 / क्विंटल*</strong></div>
+        <div class="price-row"><span>🥔 आलू</span><strong>₹1,200 / क्विंटल*</strong></div>
+        <small class="footnote">*काल्पनिक demo data — बिक्री से पहले स्थानीय मंडी में भाव जाँचें।</small>
+      </section>
+    </section>
+    <footer>🌱 Kisan Mitra <span>एक विद्यार्थी प्रोजेक्ट डेमो</span></footer>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
