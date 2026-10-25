@@ -154,15 +154,22 @@ app.get('/api/mandi', async (req, res) => {
     // Some resource responses can be strict about commodity spelling/capitalization.
     // If exact filtering returns nothing, fetch recent state records and match locally.
     if (!(data.records || []).length) {
-      const fallbackParams = new URLSearchParams({
-        'api-key': apiKey, format: 'json', limit: '1000',
-        'filters[state.keyword]': state
-      });
-      const fallbackData = await requestMandiData(fallbackParams);
       const wantedCommodity = commodity.toLocaleLowerCase().trim();
-      const fallbackRecords = (fallbackData.records || []).filter((record) =>
-        String(record.commodity || '').toLocaleLowerCase().trim().includes(wantedCommodity)
-      );
+      const fallbackRecords = [];
+      let fallbackData = {};
+      // Use 100-record pages for compatibility with the resource API's page-size limits.
+      for (let offset = 0; offset < 1000; offset += 100) {
+        const fallbackParams = new URLSearchParams({
+          'api-key': apiKey, format: 'json', limit: '100', offset: String(offset),
+          'filters[state.keyword]': state
+        });
+        fallbackData = await requestMandiData(fallbackParams);
+        const pageRecords = fallbackData.records || [];
+        fallbackRecords.push(...pageRecords.filter((record) =>
+          String(record.commodity || '').toLocaleLowerCase().trim().includes(wantedCommodity)
+        ));
+        if (pageRecords.length < 100 || fallbackRecords.length) break;
+      }
       data = { ...fallbackData, records: fallbackRecords };
     }
 
