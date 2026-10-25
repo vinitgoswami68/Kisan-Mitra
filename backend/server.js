@@ -65,24 +65,35 @@ app.post('/api/crop-diagnosis', async (req, res) => {
 app.get('/api/weather', async (req, res) => {
   const city = typeof req.query.city === 'string' ? req.query.city.trim() : '';
   if (!city || city.length > 80) return res.status(400).json({ error: 'कृपया शहर का सही नाम लिखें।' });
+
   try {
-    const geoUrl = new URL('https://geocoding-api.open-meteo.com/v1/search');
-    geoUrl.search = new URLSearchParams({ name: city, count: '1', language: 'en', format: 'json' }).toString();
-    const geoResponse = await fetch(geoUrl, { signal: AbortSignal.timeout(10000) });
-    if (!geoResponse.ok) throw new Error('Weather location service unavailable');
-    const geo = await geoResponse.json();
-    const place = geo.results?.[0];
-    if (!place) return res.status(404).json({ error: 'शहर नहीं मिला। कृपया अंग्रेज़ी में शहर का नाम लिखें।' });
+    // Mathura fallback avoids a separate geocoding request when that service is slow.
+    let place = null;
+    if (/^mathura$/i.test(city)) {
+      place = { name: 'Mathura', admin1: 'Uttar Pradesh', country: 'India', latitude: 27.4924, longitude: 77.6737 };
+    } else {
+      const geoUrl = new URL('https://geocoding-api.open-meteo.com/v1/search');
+      geoUrl.search = new URLSearchParams({ name: city, count: '1', language: 'en', format: 'json' }).toString();
+      const geoResponse = await fetch(geoUrl, { signal: AbortSignal.timeout(20000) });
+      if (!geoResponse.ok) throw new Error(`Weather location service returned HTTP ${geoResponse.status}`);
+      const geo = await geoResponse.json();
+      place = geo.results?.[0];
+      if (!place) return res.status(404).json({ error: 'शहर नहीं मिला। कृपया अंग्रेज़ी में शहर का नाम लिखें।' });
+    }
+
     const weatherUrl = new URL('https://api.open-meteo.com/v1/forecast');
     weatherUrl.search = new URLSearchParams({
       latitude: String(place.latitude), longitude: String(place.longitude),
       current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m',
       timezone: 'auto', forecast_days: '1'
     }).toString();
-    const weatherResponse = await fetch(weatherUrl, { signal: AbortSignal.timeout(10000) });
-    if (!weatherResponse.ok) throw new Error('Weather forecast service unavailable');
+
+    const weatherResponse = await fetch(weatherUrl, { signal: AbortSignal.timeout(25000) });
+    if (!weatherResponse.ok) throw new Error(`Weather forecast service returned HTTP ${weatherResponse.status}`);
     const weather = await weatherResponse.json();
     const current = weather.current;
+    if (!current) throw new Error('Weather response did not contain current conditions');
+
     return res.json({
       location: [place.name, place.admin1, place.country].filter(Boolean).join(', '),
       temperature: current.temperature_2m, apparentTemperature: current.apparent_temperature,
@@ -91,7 +102,7 @@ app.get('/api/weather', async (req, res) => {
     });
   } catch (error) {
     console.error('Weather request failed:', String(error?.message || error));
-    return res.status(502).json({ error: 'मौसम सेवा अभी उपलब्ध नहीं है। कुछ देर बाद दोबारा कोशिश करें।' });
+    return res.status(502).json({ error: 'मौसम सेवा से समय पर जवाब नहीं मिला। इंटरनेट जाँचकर दोबारा कोशिश करें।' });
   }
 });
 
