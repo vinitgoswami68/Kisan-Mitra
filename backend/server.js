@@ -190,5 +190,6 @@ function handleGeminiError(error, res) {
   return res.status(502).json({ error: 'Gemini से जवाब नहीं मिल पाया। Backend terminal में असली कारण देखें।' });
 }
 
+// Serve the frontend and API from the same Render web service. The public URL is the backend origin too.
 app.use(express.static(path.resolve(__dirname, '..'), { dotfiles: 'deny' }));
 app.listen(PORT, () => console.log(`Kisan Mitra server running on port ${PORT}`));
