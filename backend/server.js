@@ -118,7 +118,7 @@ app.get('/api/mandi', async (req, res) => {
     const url = new URL('https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070');
     const params = new URLSearchParams({
       'api-key': apiKey, format: 'json', limit: '100',
-      'filters[state]': state, 'filters[commodity]': commodity
+      'filters[state.keyword]': state, 'filters[commodity]': commodity
     });
     url.search = params.toString();
 
