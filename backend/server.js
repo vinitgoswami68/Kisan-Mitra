@@ -6,134 +6,146 @@ import { GoogleGenAI } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ai = process.env.GEMINI_API_KEY
-  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-  : null;
-
+const ai = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
 app.use(express.json({ limit: '8mb' }));
 
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, aiConfigured: Boolean(ai) });
-});
+app.get('/api/health', (_req, res) => res.json({
+  ok: true, aiConfigured: Boolean(ai), weatherConfigured: true,
+  mandiConfigured: Boolean(process.env.DATA_GOV_IN_API_KEY)
+}));
 
 app.post('/api/chat', async (req, res) => {
-  const question = typeof req.body?.question === 'string'
-    ? req.body.question.trim()
-    : '';
-
-  if (!question) {
-    return res.status(400).json({ error: 'कृपया अपना सवाल लिखें।' });
-  }
-  if (question.length > 2000) {
-    return res.status(400).json({ error: 'सवाल 2000 अक्षरों से छोटा रखें।' });
-  }
-  if (!ai) {
-    return res.status(503).json({
-      error: 'Gemini API key अभी सेट नहीं है। Backend की .env file में GEMINI_API_KEY सेट करें।'
-    });
-  }
-
+  const question = typeof req.body?.question === 'string' ? req.body.question.trim() : '';
+  const language = req.body?.language === 'en' ? 'English' : 'simple Hindi';
+  if (!question) return res.status(400).json({ error: 'कृपया अपना सवाल लिखें।' });
+  if (question.length > 2000) return res.status(400).json({ error: 'सवाल 2000 अक्षरों से छोटा रखें।' });
+  if (!ai) return res.status(503).json({ error: 'Gemini API key अभी सेट नहीं है। backend/.env में GEMINI_API_KEY सेट करें।' });
   try {
     const response = await ai.models.generateContent({
       model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
       contents: question,
       config: {
-        systemInstruction: 'आप Kisan Mitra हैं, भारत के किसानों को सरल हिंदी या उपयोगकर्ता की भाषा में सामान्य खेती संबंधी जानकारी देने वाले सहायक। फसल, मिट्टी, सिंचाई, मौसम और कीट/रोग के बारे में सावधानीपूर्वक सामान्य मार्गदर्शन दें। केवल लक्षणों से बीमारी निश्चित घोषित न करें। बिना पर्याप्त जानकारी के कीटनाशक या दवा की मात्रा न बताएं; स्थानीय कृषि विशेषज्ञ या कृषि विज्ञान केंद्र से पुष्टि करने की सलाह दें। उत्तर स्पष्ट और व्यावहारिक रखें।',
+        systemInstruction: `You are Kisan Mitra, a careful farming assistant for Indian farmers. Answer in ${language}. Give clear practical general guidance on crops, soil, irrigation and pests. Never claim certainty from limited symptoms. Do not give pesticide dosage without sufficient context; recommend a local agriculture expert or Krishi Vigyan Kendra for important treatment decisions.`,
         maxOutputTokens: 800
       }
     });
-
     const answer = response.text?.trim();
-    if (!answer) {
-      return res.status(502).json({ error: 'AI से खाली जवाब मिला। कृपया दोबारा कोशिश करें।' });
-    }
+    if (!answer) return res.status(502).json({ error: 'AI से खाली जवाब मिला। कृपया दोबारा कोशिश करें।' });
     return res.json({ answer });
-  } catch (error) {
-    return handleGeminiError(error, res);
-  }
+  } catch (error) { return handleGeminiError(error, res); }
 });
 
 app.post('/api/crop-diagnosis', async (req, res) => {
   const image = typeof req.body?.image === 'string' ? req.body.image : '';
   const mimeType = typeof req.body?.mimeType === 'string' ? req.body.mimeType : '';
+  const language = req.body?.language === 'en' ? 'English' : 'simple Hindi';
   const question = typeof req.body?.question === 'string' ? req.body.question : '';
-
-  if (!ai) {
-    return res.status(503).json({
-      error: 'Gemini API key अभी सेट नहीं है। Backend की .env file में GEMINI_API_KEY सेट करें।'
-    });
-  }
-  if (!image || image.length > 7 * 1024 * 1024) {
-    return res.status(400).json({ error: 'कृपया 5 MB से छोटी फसल की फोटो चुनें।' });
-  }
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) {
-    return res.status(400).json({ error: 'केवल JPG, PNG या WEBP फोटो स्वीकार हैं।' });
-  }
-
+  if (!ai) return res.status(503).json({ error: 'Gemini API key अभी सेट नहीं है। backend/.env में GEMINI_API_KEY सेट करें।' });
+  if (!image || image.length > 7 * 1024 * 1024) return res.status(400).json({ error: 'कृपया 5 MB से छोटी फसल की फोटो चुनें।' });
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) return res.status(400).json({ error: 'केवल JPG, PNG या WEBP फोटो स्वीकार हैं।' });
   try {
     const response = await ai.models.generateContent({
       model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
-      contents: [{
-        role: 'user',
-        parts: [
-          { text: question || 'इस फसल की फोटो में दिखाई देने वाले लक्षणों का सावधानी से विश्लेषण करें।' },
-          { inlineData: { mimeType, data: image } }
-        ]
-      }],
+      contents: [{ role: 'user', parts: [{ text: question || 'Analyze this crop carefully.' }, { inlineData: { mimeType, data: image } }] }],
       config: {
-        systemInstruction: 'आप Kisan Mitra कृषि सहायक हैं। फोटो में पौधे/फसल के दिखने वाले लक्षणों का सावधानीपूर्वक विश्लेषण सरल हिंदी में करें। संभावित कारण बताएं, निश्चित निदान का दावा न करें। यदि फोटो अस्पष्ट है या फसल की पहचान संभव नहीं, तो यह साफ बताएं और बेहतर फोटो/फसल का नाम/स्थान/लक्षण पूछें। बिना पुष्टि के कीटनाशक या दवा की मात्रा न बताएं। सुरक्षित अगले कदम बताएं और गंभीर समस्या पर स्थानीय कृषि विशेषज्ञ या कृषि विज्ञान केंद्र से सलाह लेने को कहें।',
+        systemInstruction: `You are a cautious agricultural assistant. Answer in ${language}. Describe visible crop symptoms and possible causes only; do not claim a definite diagnosis. If the image is unclear, say so and ask for a better photo or crop details. Never prescribe pesticide dosage without confirmation. Suggest safe next steps and a local agriculture expert/KVK for serious problems.`,
         maxOutputTokens: 900
       }
     });
     const answer = response.text?.trim();
-    if (!answer) {
-      return res.status(502).json({ error: 'AI से खाली जवाब मिला। कृपया दूसरी साफ फोटो के साथ कोशिश करें।' });
-    }
+    if (!answer) return res.status(502).json({ error: 'AI से खाली जवाब मिला। दूसरी साफ फोटो के साथ कोशिश करें।' });
     return res.json({ answer });
+  } catch (error) { return handleGeminiError(error, res); }
+});
+
+app.get('/api/weather', async (req, res) => {
+  const city = typeof req.query.city === 'string' ? req.query.city.trim() : '';
+  if (!city || city.length > 80) return res.status(400).json({ error: 'कृपया शहर का सही नाम लिखें।' });
+  try {
+    const geoUrl = new URL('https://geocoding-api.open-meteo.com/v1/search');
+    geoUrl.search = new URLSearchParams({ name: city, count: '1', language: 'en', format: 'json' }).toString();
+    const geoResponse = await fetch(geoUrl, { signal: AbortSignal.timeout(10000) });
+    if (!geoResponse.ok) throw new Error('Weather location service unavailable');
+    const geo = await geoResponse.json();
+    const place = geo.results?.[0];
+    if (!place) return res.status(404).json({ error: 'शहर नहीं मिला। कृपया अंग्रेज़ी में शहर का नाम लिखें।' });
+    const weatherUrl = new URL('https://api.open-meteo.com/v1/forecast');
+    weatherUrl.search = new URLSearchParams({
+      latitude: String(place.latitude), longitude: String(place.longitude),
+      current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m',
+      timezone: 'auto', forecast_days: '1'
+    }).toString();
+    const weatherResponse = await fetch(weatherUrl, { signal: AbortSignal.timeout(10000) });
+    if (!weatherResponse.ok) throw new Error('Weather forecast service unavailable');
+    const weather = await weatherResponse.json();
+    const current = weather.current;
+    return res.json({
+      location: [place.name, place.admin1, place.country].filter(Boolean).join(', '),
+      temperature: current.temperature_2m, apparentTemperature: current.apparent_temperature,
+      humidity: current.relative_humidity_2m, precipitation: current.precipitation,
+      windSpeed: current.wind_speed_10m, weatherCode: current.weather_code, time: current.time
+    });
   } catch (error) {
-    return handleGeminiError(error, res);
+    console.error('Weather request failed:', String(error?.message || error));
+    return res.status(502).json({ error: 'मौसम सेवा अभी उपलब्ध नहीं है। कुछ देर बाद दोबारा कोशिश करें।' });
   }
 });
 
+app.get('/api/mandi', async (req, res) => {
+  const apiKey = process.env.DATA_GOV_IN_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: 'लाइव मंडी भाव चालू करने के लिए backend/.env में DATA_GOV_IN_API_KEY जोड़ना होगा। Gemini API key से यह अलग सरकारी API key है।' });
+  const state = safeQuery(req.query.state, 80);
+  const district = safeQuery(req.query.district, 80);
+  const commodity = safeQuery(req.query.commodity, 80);
+  if (!state || !commodity) return res.status(400).json({ error: 'राज्य और फसल का नाम जरूरी है।' });
+  try {
+    const url = new URL('https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070');
+    const params = new URLSearchParams({
+      'api-key': apiKey, format: 'json', limit: '20',
+      'filters[state]': state, 'filters[commodity]': commodity
+    });
+    if (district) params.set('filters[district]', district);
+    url.search = params.toString();
+    const response = await fetch(url, { signal: AbortSignal.timeout(12000) });
+    if (!response.ok) throw new Error('Government mandi data service unavailable');
+    const data = await response.json();
+    const records = (data.records || []).map((r) => ({
+      state: r.state || '', district: r.district || '', market: r.market || '',
+      commodity: r.commodity || '', variety: r.variety || '', grade: r.grade || '',
+      arrival_date: r.arrival_date || '', min_price: r.min_price || '',
+      max_price: r.max_price || '', modal_price: r.modal_price || ''
+    }));
+    return res.json({ records, message: records.length ? '' : 'कोई रिकॉर्ड नहीं मिला। राज्य/जिले या फसल का नाम अंग्रेज़ी में बदलकर देखें।' });
+  } catch (error) {
+    console.error('Mandi request failed:', String(error?.message || error));
+    return res.status(502).json({ error: 'सरकारी मंडी डेटा अभी उपलब्ध नहीं है। कुछ देर बाद कोशिश करें।' });
+  }
+});
+
+function safeQuery(value, max) {
+  return typeof value === 'string' ? value.trim().slice(0, max) : '';
+}
+
 function handleGeminiError(error, res) {
-  // Log diagnostic details on the backend only; never expose the API key.
   const status = Number(error?.status || error?.code || 0);
   const message = String(error?.message || '');
   console.error('Gemini request failed:', { status, message });
-
   const normalized = message.toLowerCase();
-  if (status === 401 || status === 403 ||
-      normalized.includes('api key not valid') ||
-      normalized.includes('unauthenticated') ||
-      normalized.includes('invalid api key')) {
-    return res.status(502).json({
-      error: 'Gemini API key स्वीकार नहीं हुई। Google AI Studio से नई/सही key बनाकर backend/.env में GEMINI_API_KEY के रूप में रखें, फिर backend restart करें।'
-    });
+  if (status === 401 || status === 403 || normalized.includes('api key not valid') || normalized.includes('unauthenticated') || normalized.includes('invalid api key')) {
+    return res.status(502).json({ error: 'Gemini API key स्वीकार नहीं हुई। backend/.env में सही key जाँचें।' });
   }
-  if (status === 429 || normalized.includes('quota') ||
-      normalized.includes('rate limit') || normalized.includes('resource_exhausted')) {
-    return res.status(502).json({
-      error: 'Gemini API की usage limit पूरी हो सकती है। Google AI Studio में quota/billing status जाँचें।'
-    });
+  if (status === 429 || normalized.includes('quota') || normalized.includes('rate limit') || normalized.includes('resource_exhausted')) {
+    return res.status(502).json({ error: 'Gemini API की usage limit पूरी हो सकती है। Google AI Studio में quota जाँचें।' });
   }
   if (status === 404 || normalized.includes('model not found')) {
-    return res.status(502).json({
-      error: 'Gemini model उपलब्ध नहीं है। backend/.env में GEMINI_MODEL की setting जाँचें।'
-    });
+    return res.status(502).json({ error: 'Gemini model उपलब्ध नहीं है। backend/.env में GEMINI_MODEL जाँचें।' });
   }
-  return res.status(502).json({
-    error: 'Gemini से जवाब नहीं मिल पाया। Backend terminal में “Gemini request failed” वाली line में असली कारण है।'
-  });
+  return res.status(502).json({ error: 'Gemini से जवाब नहीं मिल पाया। Backend terminal में असली कारण देखें।' });
 }
 
-// Serve the existing frontend without changing its design.
 app.use(express.static(path.resolve(__dirname, '..'), { dotfiles: 'deny' }));
-
-app.listen(PORT, () => {
-  console.log(`Kisan Mitra server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Kisan Mitra server running on port ${PORT}`));
