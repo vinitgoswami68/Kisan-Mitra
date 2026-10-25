@@ -1,6 +1,7 @@
 const form = document.getElementById('questionForm');
 const question = document.getElementById('question');
 const answer = document.getElementById('answer');
+const submitButton = form.querySelector('button[type="submit"]');
 
 document.querySelectorAll('[data-question]').forEach((button) => {
   button.addEventListener('click', () => {
@@ -9,29 +10,37 @@ document.querySelectorAll('[data-question]').forEach((button) => {
   });
 });
 
-form.addEventListener('submit', (event) => {
+form.addEventListener('submit', async (event) => {
   event.preventDefault();
   const q = question.value.trim();
   if (!q) return;
 
-  let reply = 'अच्छा सवाल है! सही सलाह के लिए फसल का नाम, पौधे की उम्र, लक्षण कब से हैं और आपके क्षेत्र की जानकारी उपयोगी होगी।';
-  if (/पीले|पीला|yellow/i.test(q)) {
-    reply = 'संभावित कारण: पोषक तत्वों की कमी, ज्यादा या कम पानी, जड़ों की समस्या या कोई रोग। पहले खेत की नमी और पत्तों के लक्षण देखें। केवल इस सवाल से बीमारी पक्की नहीं बताई जा सकती। साफ फोटो और फसल की उम्र से बेहतर मार्गदर्शन मिल सकता है।';
-  } else if (/पानी|सिंचाई|irrigat/i.test(q)) {
-    reply = 'सिंचाई का सही समय फसल, मिट्टी, मौसम और पौधे की अवस्था पर निर्भर करता है। खेत में पानी जमा न होने दें। फसल और मिट्टी का प्रकार बताने पर सलाह अधिक उपयोगी होगी।';
-  } else if (/टमाटर|tomato/i.test(q)) {
-    reply = 'टमाटर के लिए पर्याप्त धूप, मिट्टी में उचित नमी और जल निकासी जरूरी हैं। पत्तों पर धब्बे या मुरझाने जैसे लक्षण हों तो साफ फोटो लें। बिना पुष्टि के कीटनाशक या दवा का उपयोग न करें।';
-  } else if (/गेहूँ|गेहूं|wheat/i.test(q)) {
-    reply = 'गेहूँ की सलाह उसकी बढ़वार की अवस्था, मिट्टी और मौसम पर निर्भर करती है। पत्तों का रंग बदल रहा हो तो पानी, पोषक तत्व और रोग के संकेत जाँचें। लक्षणों की फोटो से आगे जाँच की जा सकती है।';
-  }
-
   answer.hidden = false;
   answer.replaceChildren();
   const heading = document.createElement('strong');
-  heading.textContent = '🌱 Kisan Mitra का डेमो जवाब';
+  heading.textContent = '🌱 Kisan Mitra AI';
   const body = document.createElement('span');
-  body.textContent = reply;
+  body.textContent = 'आपके सवाल का जवाब तैयार हो रहा है...';
   answer.append(heading, body);
+
+  submitButton.disabled = true;
+  submitButton.textContent = 'जवाब तैयार हो रहा है...';
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'जवाब नहीं मिल पाया।');
+    body.textContent = data.answer;
+  } catch (error) {
+    body.textContent = error.message || 'Server से संपर्क नहीं हो पाया। Backend चालू है या नहीं, जाँचें।';
+  } finally {
+    submitButton.disabled = false;
+    submitButton.innerHTML = 'जवाब देखें <span>→</span>';
+  }
 });
 
 const photoInput = document.getElementById('cropPhoto');
