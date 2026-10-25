@@ -54,9 +54,33 @@ app.post('/api/chat', async (req, res) => {
     }
     return res.json({ answer });
   } catch (error) {
-    console.error('Gemini request failed:', error?.message || error);
+    // Log diagnostic details on the backend only; never expose the API key.
+    const status = Number(error?.status || error?.code || 0);
+    const message = String(error?.message || '');
+    console.error('Gemini request failed:', { status, message });
+
+    const normalized = message.toLowerCase();
+    if (status === 401 || status === 403 ||
+        normalized.includes('api key not valid') ||
+        normalized.includes('unauthenticated') ||
+        normalized.includes('invalid api key')) {
+      return res.status(502).json({
+        error: 'Gemini API key स्वीकार नहीं हुई। Google AI Studio से नई/सही key बनाकर backend/.env में GEMINI_API_KEY के रूप में रखें, फिर backend restart करें।'
+      });
+    }
+    if (status === 429 || normalized.includes('quota') ||
+        normalized.includes('rate limit') || normalized.includes('resource_exhausted')) {
+      return res.status(502).json({
+        error: 'Gemini API की usage limit पूरी हो सकती है। Google AI Studio में quota/billing status जाँचें।'
+      });
+    }
+    if (status === 404 || normalized.includes('model not found')) {
+      return res.status(502).json({
+        error: 'Gemini model उपलब्ध नहीं है। backend/.env में GEMINI_MODEL की setting जाँचें।'
+      });
+    }
     return res.status(502).json({
-      error: 'Gemini से जवाब नहीं मिल पाया। API key, quota और backend logs जाँचें।'
+      error: 'Gemini से जवाब नहीं मिल पाया। Backend terminal में “Gemini request failed” वाली line में असली कारण है।'
     });
   }
 });
