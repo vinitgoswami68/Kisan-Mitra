@@ -40,7 +40,7 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     const response = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
       contents: question,
       config: {
         systemInstruction: 'आप Kisan Mitra हैं, भारत के किसानों को सरल हिंदी या उपयोगकर्ता की भाषा में सामान्य खेती संबंधी जानकारी देने वाले सहायक। फसल, मिट्टी, सिंचाई, मौसम और कीट/रोग के बारे में सावधानीपूर्वक सामान्य मार्गदर्शन दें। केवल लक्षणों से बीमारी निश्चित घोषित न करें। बिना पर्याप्त जानकारी के कीटनाशक या दवा की मात्रा न बताएं; स्थानीय कृषि विशेषज्ञ या कृषि विज्ञान केंद्र से पुष्टि करने की सलाह दें। उत्तर स्पष्ट और व्यावहारिक रखें।',
