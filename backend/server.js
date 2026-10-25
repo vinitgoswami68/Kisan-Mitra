@@ -191,8 +191,25 @@ app.get('/api/mandi', async (req, res) => {
           : '');
     return res.json({ records, message });
   } catch (error) {
-    console.error('Mandi request failed:', String(error?.message || error));
-    return res.status(502).json({ error: 'सरकारी मंडी डेटा से कनेक्शन नहीं हो पाया। इंटरनेट/API key जाँचें; असली कारण backend terminal में दर्ज है।' });
+    const detail = String(error?.message || error);
+    console.error('Mandi request failed:', detail);
+    // Give the frontend a safe, actionable diagnosis without exposing the API key.
+    let message = 'सरकारी मंडी सेवा से कनेक्शन नहीं हो पाया। कुछ देर बाद फिर कोशिश करें।';
+    let diagnostic = 'upstream_connection';
+    if (/HTTP 403|API_KEY_INVALID|API_KEY_UNVERIFIED|API_KEY_DISABLED|API_KEY_UNAUTHORIZED/i.test(detail)) {
+      message = 'Render पर DATA_GOV_IN_API_KEY स्वीकार नहीं हुई। Render Environment में सही, verified सरकारी API key सेट करके redeploy करें।';
+      diagnostic = 'api_key_rejected';
+    } else if (/HTTP 429|OVER_RATE_LIMIT/i.test(detail)) {
+      message = 'सरकारी API की request limit पूरी हो गई है। कुछ देर बाद फिर कोशिश करें।';
+      diagnostic = 'rate_limited';
+    } else if (/HTTP 400|HTTP 404/i.test(detail)) {
+      message = 'सरकारी API ने request अस्वीकार की। API filter या endpoint की जाँच जरूरी है।';
+      diagnostic = 'request_rejected';
+    } else if (/HTTP 5\d\d/i.test(detail)) {
+      message = 'सरकारी data.gov.in सेवा में अस्थायी समस्या है। बाद में फिर कोशिश करें।';
+      diagnostic = 'government_service_error';
+    }
+    return res.status(502).json({ error: message, diagnostic });
   }
 });
 
