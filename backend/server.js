@@ -116,36 +116,56 @@ app.get('/api/mandi', async (req, res) => {
   try {
     // Do not filter district at the API: exact district filters can hide valid results.
     const url = new URL('https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070');
+    const requestMandiData = async (params) => {
+      const requestUrl = new URL(url);
+      requestUrl.search = params.toString();
+      let response;
+      let lastError;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          response = await fetch(requestUrl, { signal: AbortSignal.timeout(20000) });
+          break;
+        } catch (error) {
+          lastError = error;
+          if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 700));
+        }
+      }
+      if (!response) {
+        const cause = lastError?.cause;
+        console.error('Mandi connection diagnostics:', {
+          name: lastError?.name || '', message: lastError?.message || '',
+          causeCode: cause?.code || '', causeMessage: cause?.message || ''
+        });
+        throw new Error(`Could not connect to data.gov.in after 3 attempts (${cause?.code || lastError?.message || 'network error'})`);
+      }
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`data.gov.in returned HTTP ${response.status}: ${body.slice(0, 200)}`);
+      }
+      return response.json();
+    };
+
     const params = new URLSearchParams({
       'api-key': apiKey, format: 'json', limit: '100',
       'filters[state.keyword]': state, 'filters[commodity]': commodity
     });
-    url.search = params.toString();
+    let data = await requestMandiData(params);
 
-    let response;
-    let lastError;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        response = await fetch(url, { signal: AbortSignal.timeout(20000) });
-        break;
-      } catch (error) {
-        lastError = error;
-        if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 700));
-      }
-    }
-    if (!response) {
-      const cause = lastError?.cause;
-      console.error('Mandi connection diagnostics:', {
-        name: lastError?.name || '', message: lastError?.message || '',
-        causeCode: cause?.code || '', causeMessage: cause?.message || ''
+    // Some resource responses can be strict about commodity spelling/capitalization.
+    // If exact filtering returns nothing, fetch recent state records and match locally.
+    if (!(data.records || []).length) {
+      const fallbackParams = new URLSearchParams({
+        'api-key': apiKey, format: 'json', limit: '1000',
+        'filters[state.keyword]': state
       });
-      throw new Error(`Could not connect to data.gov.in after 3 attempts (${cause?.code || lastError?.message || 'network error'})`);
+      const fallbackData = await requestMandiData(fallbackParams);
+      const wantedCommodity = commodity.toLocaleLowerCase().trim();
+      const fallbackRecords = (fallbackData.records || []).filter((record) =>
+        String(record.commodity || '').toLocaleLowerCase().trim().includes(wantedCommodity)
+      );
+      data = { ...fallbackData, records: fallbackRecords };
     }
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      throw new Error(`data.gov.in returned HTTP ${response.status}: ${body.slice(0, 200)}`);
-    }
-    const data = await response.json();
+
     const allRecords = (data.records || []).map((r) => ({
       state: r.state || '', district: r.district || '', market: r.market || '',
       commodity: r.commodity || '', variety: r.variety || '', grade: r.grade || '',
