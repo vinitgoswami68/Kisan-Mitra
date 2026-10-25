@@ -115,7 +115,7 @@ app.get('/api/mandi', async (req, res) => {
   if (!state || !commodity) return res.status(400).json({ error: 'राज्य और फसल का नाम जरूरी है।' });
   try {
     // Do not filter district at the API: exact district filters can hide valid results.
-    const url = new URL('https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070');
+    const url = new URL('https://www.data.gov.in/api/datastore/resource.json');
     const requestMandiData = async (params) => {
       const requestUrl = new URL(url);
       requestUrl.search = params.toString();
