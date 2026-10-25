@@ -30,7 +30,7 @@
 
     <section class="quick-grid" aria-label="मुख्य सुविधाएँ">
       <article class="quick-card"><div class="quick-icon green">💬</div><h3>AI खेती सलाह</h3><p>खेती से जुड़े सवाल पूछें</p><a href="#ask">शुरू करें →</a></article>
-      <article class="quick-card"><div class="quick-icon yellow">📷</div><h3>फसल की फोटो</h3><p>फोटो चुनकर जानकारी दें</p><a href="#photo">फोटो चुनें →</a></article>
+      <article class="quick-card"><div class="quick-icon yellow">📷</div><h3>फसल की फोटो</h3><p>फोटो से संभावित समस्या जानें</p><a href="#photo">फोटो चुनें →</a></article>
       <article class="quick-card"><div class="quick-icon blue">🌦️</div><h3>मौसम</h3><p>मौसम सुविधा का डेमो</p><a href="#weather">देखें →</a></article>
       <article class="quick-card"><div class="quick-icon orange">📈</div><h3>मंडी भाव</h3><p>नमूना भाव देखें</p><a href="#mandi">देखें →</a></article>
     </section>
@@ -54,12 +54,14 @@
       </section>
 
       <section class="panel photo-panel" id="photo">
-        <div class="section-heading"><div><p class="eyebrow">फसल की जाँच</p><h2>फसल की फोटो चुनें</h2></div><span class="bot-icon">📸</span></div>
-        <p class="muted">पौधे या पत्ते की साफ फोटो चुनें। अभी यह केवल preview दिखाता है।</p>
-        <label class="upload-area" for="cropPhoto"><span class="upload-symbol">＋</span><strong>फोटो चुनने के लिए क्लिक करें</strong><small>JPG, PNG या WEBP</small></label>
-        <input type="file" id="cropPhoto" accept="image/*" hidden>
+        <div class="section-heading"><div><p class="eyebrow">AI फसल जाँच</p><h2>फसल की फोटो जाँचें</h2></div><span class="bot-icon">📸</span></div>
+        <p class="muted">पत्ते या पौधे की साफ फोटो अपलोड करें। AI संभावित लक्षण और अगले कदम बताएगा।</p>
+        <label class="upload-area" for="cropPhoto"><span class="upload-symbol">＋</span><strong>फसल की फोटो चुनें</strong><small>JPG, PNG या WEBP · अधिकतम 5 MB</small></label>
+        <input type="file" id="cropPhoto" accept="image/jpeg,image/png,image/webp" hidden>
         <div id="photoPreview" class="photo-preview" hidden><img id="previewImage" alt="आपकी चुनी हुई फसल की फोटो"><p id="photoName"></p></div>
-        <div class="notice">⚠️ अभी बीमारी की पहचान नहीं होती। अगले चरण में AI image model जोड़ेंगे।</div>
+        <button class="primary-button" id="diagnoseButton" type="button" disabled>फोटो से जाँचें <span>→</span></button>
+        <div id="diagnosisResult" class="answer-box" hidden aria-live="polite"></div>
+        <div class="notice">ध्यान दें: फोटो से AI की पहचान अनुमान है, पक्की बीमारी की पुष्टि नहीं। दवा डालने से पहले कृषि विशेषज्ञ/KVK से सलाह लें।</div>
       </section>
     </section>
 
