@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#176b43">
   <title>Kisan Mitra | Smart Farming Assistant</title>
+  <meta name="description" content="Kisan Mitra: Hindi-first AI farming assistant with crop photo analysis, weather forecasts, and mandi price lookup.">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
     <div class="brand"><span class="brand-icon">🌱</span><span>Kisan Mitra<small>SMART FARMING ASSISTANT</small></span></div>
-    <span class="status"><i></i> AI खेती सहायता</span>
+    <div class="top-actions"><label class="language-label" for="answerLanguage">जवाब / Answer</label><select id="answerLanguage" aria-label="AI answer language"><option value="hi">हिंदी</option><option value="en">English</option></select><span class="status"><i></i> AI खेती सहायता</span></div>
   </header>
 
   <main class="container">
@@ -31,8 +33,8 @@
     <section class="quick-grid" aria-label="मुख्य सुविधाएँ">
       <article class="quick-card"><div class="quick-icon green">💬</div><h3>AI खेती सलाह</h3><p>खेती से जुड़े सवाल पूछें</p><a href="#ask">शुरू करें →</a></article>
       <article class="quick-card"><div class="quick-icon yellow">📷</div><h3>फसल की फोटो</h3><p>फोटो से संभावित समस्या जानें</p><a href="#photo">फोटो चुनें →</a></article>
-      <article class="quick-card"><div class="quick-icon blue">🌦️</div><h3>मौसम</h3><p>मौसम सुविधा का डेमो</p><a href="#weather">देखें →</a></article>
-      <article class="quick-card"><div class="quick-icon orange">📈</div><h3>मंडी भाव</h3><p>नमूना भाव देखें</p><a href="#mandi">देखें →</a></article>
+      <article class="quick-card"><div class="quick-icon blue">🌦️</div><h3>लाइव मौसम</h3><p>शहर के अनुसार मौसम देखें</p><a href="#weather">देखें →</a></article>
+      <article class="quick-card"><div class="quick-icon orange">📈</div><h3>मंडी भाव</h3><p>सरकारी डेटा से भाव खोजें</p><a href="#mandi">देखें →</a></article>
     </section>
 
     <section class="content-grid">
@@ -40,7 +42,7 @@
         <div class="section-heading"><div><p class="eyebrow">आपकी मदद के लिए</p><h2>खेती का सवाल पूछें</h2></div><span class="bot-icon">🤖</span></div>
         <p class="muted">उदाहरण: गेहूँ के पत्ते पीले क्यों हो रहे हैं?</p>
         <form id="questionForm">
-          <label for="question">अपना सवाल लिखें</label>
+          <label for="question">अपना सवाल लिखें / Ask a question</label>
           <textarea id="question" rows="3" placeholder="यहाँ हिंदी या English में सवाल लिखें..." required></textarea>
           <div class="suggestions">
             <button type="button" class="chip" data-question="गेहूँ के पत्ते पीले क्यों हो रहे हैं?">🌾 गेहूँ</button>
@@ -50,7 +52,7 @@
           <button class="primary-button" type="submit">जवाब देखें <span>→</span></button>
         </form>
         <div id="answer" class="answer-box" hidden aria-live="polite"></div>
-        <p class="demo-note">नोट: AI सलाह के लिए backend और Gemini API key सेट होना जरूरी है।</p>
+        <p class="demo-note">AI सलाह के लिए backend और Gemini API key सेट होना जरूरी है।</p>
       </section>
 
       <section class="panel photo-panel" id="photo">
@@ -61,25 +63,31 @@
         <div id="photoPreview" class="photo-preview" hidden><img id="previewImage" alt="आपकी चुनी हुई फसल की फोटो"><p id="photoName"></p></div>
         <button class="primary-button" id="diagnoseButton" type="button" disabled>फोटो से जाँचें <span>→</span></button>
         <div id="diagnosisResult" class="answer-box" hidden aria-live="polite"></div>
-        <div class="notice">ध्यान दें: फोटो से AI की पहचान अनुमान है, पक्की बीमारी की पुष्टि नहीं। दवा डालने से पहले कृषि विशेषज्ञ/KVK से सलाह लें।</div>
+        <div class="notice">ध्यान दें: AI की पहचान अनुमान है, पक्की बीमारी की पुष्टि नहीं। दवा डालने से पहले कृषि विशेषज्ञ/KVK से सलाह लें।</div>
       </section>
     </section>
 
     <section class="lower-grid">
       <section class="panel" id="weather">
-        <div class="section-heading"><div><p class="eyebrow">मौसम सहायता</p><h2>मौसम की जानकारी</h2></div><span class="bot-icon">🌤️</span></div>
-        <div class="weather-demo"><span class="weather-emoji">🌤️</span><div><strong>मौसम API अभी नहीं जुड़ी</strong><p>Live तापमान और बारिश की जानकारी अगले चरण में जोड़ेंगे।</p></div></div>
+        <div class="section-heading"><div><p class="eyebrow">मौसम सहायता</p><h2>लाइव मौसम / Live Weather</h2></div><span class="bot-icon">🌤️</span></div>
+        <form id="weatherForm" class="inline-form"><label for="weatherCity">शहर / City</label><input id="weatherCity" value="Mathura" maxlength="80" placeholder="जैसे Mathura" required><button class="primary-button" type="submit">मौसम देखें</button></form>
+        <div id="weatherResult" class="weather-demo" aria-live="polite"><span class="weather-emoji">🌤️</span><div><strong>शहर डालकर मौसम देखें</strong><p>Forecast Open-Meteo से मिलेगा; इंटरनेट जरूरी है।</p></div></div>
+        <small class="footnote">मौसम पूर्वानुमान है; स्थानीय परिस्थितियाँ अलग हो सकती हैं।</small>
       </section>
       <section class="panel" id="mandi">
-        <div class="section-heading"><div><p class="eyebrow">बाजार सहायता</p><h2>नमूना मंडी भाव</h2></div><span class="bot-icon">🧺</span></div>
-        <p class="muted">ये केवल demo के लिए उदाहरण हैं, आज के वास्तविक भाव नहीं।</p>
-        <div class="price-row"><span>🌾 गेहूँ</span><strong>₹2,400 / क्विंटल*</strong></div>
-        <div class="price-row"><span>🌾 धान</span><strong>₹2,200 / क्विंटल*</strong></div>
-        <div class="price-row"><span>🥔 आलू</span><strong>₹1,200 / क्विंटल*</strong></div>
-        <small class="footnote">*काल्पनिक demo data — बिक्री से पहले स्थानीय मंडी में भाव जाँचें।</small>
+        <div class="section-heading"><div><p class="eyebrow">बाजार सहायता</p><h2>मंडी भाव / Mandi Prices</h2></div><span class="bot-icon">🧺</span></div>
+        <p class="muted">सरकारी data.gov.in रिकॉर्ड खोजें। भाव तारीख और मंडी के अनुसार बदलते हैं।</p>
+        <form id="mandiForm" class="form-stack">
+          <label for="mandiState">राज्य / State</label><input id="mandiState" value="Uttar Pradesh" maxlength="80" required>
+          <label for="mandiDistrict">जिला / District (वैकल्पिक)</label><input id="mandiDistrict" value="Mathura" maxlength="80">
+          <label for="mandiCommodity">फसल / Commodity</label><input id="mandiCommodity" value="Wheat" maxlength="80" required>
+          <button class="primary-button" type="submit">मंडी भाव खोजें</button>
+        </form>
+        <div id="mandiResult" class="mandi-results" aria-live="polite"><p class="muted">खोज करने पर उपलब्ध रिकॉर्ड यहाँ दिखेंगे।</p></div>
+        <small class="footnote">सरकारी डेटा रोज़ाना अपडेट हो सकता है, हर मंडी का रिकॉर्ड उपलब्ध होना जरूरी नहीं।</small>
       </section>
     </section>
-    <footer>🌱 Kisan Mitra <span>एक विद्यार्थी प्रोजेक्ट डेमो</span></footer>
+    <footer>🌱 Kisan Mitra <span>एक विद्यार्थी प्रोजेक्ट डेमो · Weather: Open-Meteo</span></footer>
   </main>
   <script src="script.js"></script>
 </body>
