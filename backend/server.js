@@ -15,7 +15,7 @@ const ai = process.env.GEMINI_API_KEY
   ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
-app.use(express.json({ limit: '20kb' }));
+app.use(express.json({ limit: '8mb' }));
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, aiConfigured: Boolean(ai) });
@@ -54,36 +54,82 @@ app.post('/api/chat', async (req, res) => {
     }
     return res.json({ answer });
   } catch (error) {
-    // Log diagnostic details on the backend only; never expose the API key.
-    const status = Number(error?.status || error?.code || 0);
-    const message = String(error?.message || '');
-    console.error('Gemini request failed:', { status, message });
-
-    const normalized = message.toLowerCase();
-    if (status === 401 || status === 403 ||
-        normalized.includes('api key not valid') ||
-        normalized.includes('unauthenticated') ||
-        normalized.includes('invalid api key')) {
-      return res.status(502).json({
-        error: 'Gemini API key स्वीकार नहीं हुई। Google AI Studio से नई/सही key बनाकर backend/.env में GEMINI_API_KEY के रूप में रखें, फिर backend restart करें।'
-      });
-    }
-    if (status === 429 || normalized.includes('quota') ||
-        normalized.includes('rate limit') || normalized.includes('resource_exhausted')) {
-      return res.status(502).json({
-        error: 'Gemini API की usage limit पूरी हो सकती है। Google AI Studio में quota/billing status जाँचें।'
-      });
-    }
-    if (status === 404 || normalized.includes('model not found')) {
-      return res.status(502).json({
-        error: 'Gemini model उपलब्ध नहीं है। backend/.env में GEMINI_MODEL की setting जाँचें।'
-      });
-    }
-    return res.status(502).json({
-      error: 'Gemini से जवाब नहीं मिल पाया। Backend terminal में “Gemini request failed” वाली line में असली कारण है।'
-    });
+    return handleGeminiError(error, res);
   }
 });
+
+app.post('/api/crop-diagnosis', async (req, res) => {
+  const image = typeof req.body?.image === 'string' ? req.body.image : '';
+  const mimeType = typeof req.body?.mimeType === 'string' ? req.body.mimeType : '';
+  const question = typeof req.body?.question === 'string' ? req.body.question : '';
+
+  if (!ai) {
+    return res.status(503).json({
+      error: 'Gemini API key अभी सेट नहीं है। Backend की .env file में GEMINI_API_KEY सेट करें।'
+    });
+  }
+  if (!image || image.length > 7 * 1024 * 1024) {
+    return res.status(400).json({ error: 'कृपया 5 MB से छोटी फसल की फोटो चुनें।' });
+  }
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(mimeType)) {
+    return res.status(400).json({ error: 'केवल JPG, PNG या WEBP फोटो स्वीकार हैं।' });
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+      contents: [{
+        role: 'user',
+        parts: [
+          { text: question || 'इस फसल की फोटो में दिखाई देने वाले लक्षणों का सावधानी से विश्लेषण करें।' },
+          { inlineData: { mimeType, data: image } }
+        ]
+      }],
+      config: {
+        systemInstruction: 'आप Kisan Mitra कृषि सहायक हैं। फोटो में पौधे/फसल के दिखने वाले लक्षणों का सावधानीपूर्वक विश्लेषण सरल हिंदी में करें। संभावित कारण बताएं, निश्चित निदान का दावा न करें। यदि फोटो अस्पष्ट है या फसल की पहचान संभव नहीं, तो यह साफ बताएं और बेहतर फोटो/फसल का नाम/स्थान/लक्षण पूछें। बिना पुष्टि के कीटनाशक या दवा की मात्रा न बताएं। सुरक्षित अगले कदम बताएं और गंभीर समस्या पर स्थानीय कृषि विशेषज्ञ या कृषि विज्ञान केंद्र से सलाह लेने को कहें।',
+        maxOutputTokens: 900
+      }
+    });
+    const answer = response.text?.trim();
+    if (!answer) {
+      return res.status(502).json({ error: 'AI से खाली जवाब मिला। कृपया दूसरी साफ फोटो के साथ कोशिश करें।' });
+    }
+    return res.json({ answer });
+  } catch (error) {
+    return handleGeminiError(error, res);
+  }
+});
+
+function handleGeminiError(error, res) {
+  // Log diagnostic details on the backend only; never expose the API key.
+  const status = Number(error?.status || error?.code || 0);
+  const message = String(error?.message || '');
+  console.error('Gemini request failed:', { status, message });
+
+  const normalized = message.toLowerCase();
+  if (status === 401 || status === 403 ||
+      normalized.includes('api key not valid') ||
+      normalized.includes('unauthenticated') ||
+      normalized.includes('invalid api key')) {
+    return res.status(502).json({
+      error: 'Gemini API key स्वीकार नहीं हुई। Google AI Studio से नई/सही key बनाकर backend/.env में GEMINI_API_KEY के रूप में रखें, फिर backend restart करें।'
+    });
+  }
+  if (status === 429 || normalized.includes('quota') ||
+      normalized.includes('rate limit') || normalized.includes('resource_exhausted')) {
+    return res.status(502).json({
+      error: 'Gemini API की usage limit पूरी हो सकती है। Google AI Studio में quota/billing status जाँचें।'
+    });
+  }
+  if (status === 404 || normalized.includes('model not found')) {
+    return res.status(502).json({
+      error: 'Gemini model उपलब्ध नहीं है। backend/.env में GEMINI_MODEL की setting जाँचें।'
+    });
+  }
+  return res.status(502).json({
+    error: 'Gemini से जवाब नहीं मिल पाया। Backend terminal में “Gemini request failed” वाली line में असली कारण है।'
+  });
+}
 
 // Serve the existing frontend without changing its design.
 app.use(express.static(path.resolve(__dirname, '..'), { dotfiles: 'deny' }));
