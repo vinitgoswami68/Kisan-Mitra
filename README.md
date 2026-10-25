@@ -1,28 +1,34 @@
 # Kisan Mitra 🌱
 
-A student project: Smart Farming Assistant with a Hindi-first interface.
+Hindi-first Smart Farming Assistant student project.
 
 ## Features
-- Farming questions answered using the Gemini API (backend)
-- Crop photo analysis using a Gemini vision-capable model; results are possible causes, not a confirmed diagnosis
-- Weather and mandi prices are currently demo placeholders
+- Gemini AI farming chat with Hindi/English answer selection
+- Crop photo analysis with safety guidance (possible causes, not a confirmed diagnosis)
+- Live weather lookup by city using Open-Meteo geocoding and forecast APIs
+- Official daily mandi-price lookup through data.gov.in (requires a separate API key)
+- Responsive mobile-friendly layout
+- API keys kept in backend environment variables
 
 ## Requirements
 - Node.js 20 or later
-- A Gemini API key from Google AI Studio
+- Gemini API key from Google AI Studio
+- Optional: data.gov.in API key for official mandi-price search
 
 ## Run locally
 1. Open a terminal in the repository root.
-2. Install backend packages:
-   `cd backend`
-   `npm install`
-3. Create `backend/.env` by copying `backend/.env.example`.
-4. Put your key in `backend/.env` as `GEMINI_API_KEY=your_key_here`. Never commit this file.
-5. Start the server:
-   `npm start`
-6. Open `http://localhost:3000`.
+2. Run `cd backend` and `npm install`.
+3. Create `backend/.env` based on `backend/.env.example`.
+4. Set `GEMINI_API_KEY` in `backend/.env`. Never commit this file.
+5. To enable live mandi search, set `DATA_GOV_IN_API_KEY` using your own key from data.gov.in. Until set, the app will explain that the key is missing.
+6. Run `npm start` from the backend folder.
+7. Open `http://localhost:3000`.
 
-The Express server serves the frontend and provides `POST /api/chat` and `POST /api/crop-diagnosis`. Crop photos must be JPG, PNG or WEBP and no larger than 5 MB.
+## API routes
+- `POST /api/chat`
+- `POST /api/crop-diagnosis`
+- `GET /api/weather?city=Mathura`
+- `GET /api/mandi?state=Uttar%20Pradesh&district=Mathura&commodity=Wheat`
+- `GET /api/health`
 
-## Safety note
-Photo analysis can be wrong and is not a confirmed agricultural diagnosis. Do not spray or apply treatment based only on the AI result. Verify important treatment decisions with a local agriculture expert/Krishi Vigyan Kendra. Weather and mandi values are demo placeholders, not live data.
+Weather is forecast/model data from Open-Meteo, not an official warning service. Mandi prices are daily government records and may be delayed or missing for some markets. The AI photo analysis can be wrong; verify treatment decisions with a local agriculture expert/Krishi Vigyan Kendra. Never commit API keys.
