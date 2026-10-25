@@ -11,19 +11,14 @@ if not exist "backend\server.js" (
   exit /b 1
 )
 echo Google AI Studio se apni Gemini API key copy karein.
-echo Key sirf is computer par backend\.env mein save hogi; GitHub par upload nahi hogi.
-set /p "GEMINI_KEY=API key yahan paste karein (screen par type dikh sakta hai): "
-if "%GEMINI_KEY%"=="" (
-  echo API key khali hai. Setup roka gaya.
+echo Key hidden prompt se li jayegi aur backend\.env mein save hogi.
+echo Ye key GitHub par commit nahi ki jayegi.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$s=Read-Host 'Gemini API key paste karein (input hidden rahega)' -AsSecureString; $p=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($s); try { $k=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($p); if ([string]::IsNullOrWhiteSpace($k)) { exit 2 }; @('GEMINI_API_KEY=' + $k,'GEMINI_MODEL=gemini-2.5-flash','PORT=3000') | Set-Content -Encoding ascii 'backend\.env' } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($p) }"
+if errorlevel 1 (
+  echo API key save nahi hui. Setup roka gaya.
   pause
   exit /b 1
 )
-(
-  echo GEMINI_API_KEY=%GEMINI_KEY%
-  echo GEMINI_MODEL=gemini-2.5-flash
-  echo PORT=3000
-) > "backend\.env"
-set "GEMINI_KEY="
 echo.
 echo Dependencies install ho rahi hain...
 cd backend
