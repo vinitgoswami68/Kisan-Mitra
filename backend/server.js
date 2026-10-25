@@ -114,14 +114,14 @@ app.get('/api/mandi', async (req, res) => {
   const commodity = safeQuery(req.query.commodity, 80);
   if (!state || !commodity) return res.status(400).json({ error: 'राज्य और फसल का नाम जरूरी है।' });
   try {
+    // Do not filter district at the API: exact district filters can hide valid results.
     const url = new URL('https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070');
     const params = new URLSearchParams({
-      'api-key': apiKey, format: 'json', limit: '20',
+      'api-key': apiKey, format: 'json', limit: '100',
       'filters[state]': state, 'filters[commodity]': commodity
     });
-    if (district) params.set('filters[district]', district);
     url.search = params.toString();
-    // Retry brief connection failures; public data.gov.in can occasionally drop connections.
+
     let response;
     let lastError;
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -146,16 +146,26 @@ app.get('/api/mandi', async (req, res) => {
       throw new Error(`data.gov.in returned HTTP ${response.status}: ${body.slice(0, 200)}`);
     }
     const data = await response.json();
-    const records = (data.records || []).map((r) => ({
+    const allRecords = (data.records || []).map((r) => ({
       state: r.state || '', district: r.district || '', market: r.market || '',
       commodity: r.commodity || '', variety: r.variety || '', grade: r.grade || '',
       arrival_date: r.arrival_date || '', min_price: r.min_price || '',
       max_price: r.max_price || '', modal_price: r.modal_price || ''
     }));
-    return res.json({ records, message: records.length ? '' : 'कोई रिकॉर्ड नहीं मिला। राज्य/जिले या फसल का नाम अंग्रेज़ी में बदलकर देखें।' });
+    const normalizedDistrict = district.toLocaleLowerCase().trim();
+    const districtRecords = normalizedDistrict
+      ? allRecords.filter((r) => r.district.toLocaleLowerCase().trim() === normalizedDistrict)
+      : allRecords;
+    const records = districtRecords.length ? districtRecords : allRecords;
+    const message = records.length === 0
+      ? 'इस फसल के लिए अभी सरकारी रिकॉर्ड नहीं मिला। दूसरी फसल चुनें या बाद में कोशिश करें।'
+      : (normalizedDistrict && districtRecords.length === 0
+          ? `${district} जिले का रिकॉर्ड नहीं मिला; नीचे उत्तर प्रदेश की इसी फसल के उपलब्ध मंडी रिकॉर्ड दिखाए गए हैं।`
+          : '');
+    return res.json({ records, message });
   } catch (error) {
     console.error('Mandi request failed:', String(error?.message || error));
-    return res.status(502).json({ error: 'सरकारी मंडी डेटा अभी उपलब्ध नहीं है। कुछ देर बाद कोशिश करें।' });
+    return res.status(502).json({ error: 'सरकारी मंडी डेटा से कनेक्शन नहीं हो पाया। इंटरनेट/API key जाँचें; असली कारण backend terminal में दर्ज है।' });
   }
 });
 
