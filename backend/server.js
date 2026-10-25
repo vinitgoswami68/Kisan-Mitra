@@ -147,7 +147,7 @@ app.get('/api/mandi', async (req, res) => {
 
     const params = new URLSearchParams({
       'api-key': apiKey, format: 'json', limit: '100',
-      'filters[state.keyword]': state, 'filters[commodity]': commodity
+      'filters[state]': state, 'filters[commodity]': commodity
     });
     let data = await requestMandiData(params);
 
@@ -161,7 +161,7 @@ app.get('/api/mandi', async (req, res) => {
       for (let offset = 0; offset < 1000; offset += 100) {
         const fallbackParams = new URLSearchParams({
           'api-key': apiKey, format: 'json', limit: '100', offset: String(offset),
-          'filters[state.keyword]': state
+          'filters[state]': state
         });
         fallbackData = await requestMandiData(fallbackParams);
         const pageRecords = fallbackData.records || [];
