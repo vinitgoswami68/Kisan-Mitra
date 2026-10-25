@@ -121,8 +121,30 @@ app.get('/api/mandi', async (req, res) => {
     });
     if (district) params.set('filters[district]', district);
     url.search = params.toString();
-    const response = await fetch(url, { signal: AbortSignal.timeout(12000) });
-    if (!response.ok) throw new Error('Government mandi data service unavailable');
+    // Retry brief connection failures; public data.gov.in can occasionally drop connections.
+    let response;
+    let lastError;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        response = await fetch(url, { signal: AbortSignal.timeout(20000) });
+        break;
+      } catch (error) {
+        lastError = error;
+        if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 700));
+      }
+    }
+    if (!response) {
+      const cause = lastError?.cause;
+      console.error('Mandi connection diagnostics:', {
+        name: lastError?.name || '', message: lastError?.message || '',
+        causeCode: cause?.code || '', causeMessage: cause?.message || ''
+      });
+      throw new Error(`Could not connect to data.gov.in after 3 attempts (${cause?.code || lastError?.message || 'network error'})`);
+    }
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`data.gov.in returned HTTP ${response.status}: ${body.slice(0, 200)}`);
+    }
     const data = await response.json();
     const records = (data.records || []).map((r) => ({
       state: r.state || '', district: r.district || '', market: r.market || '',
