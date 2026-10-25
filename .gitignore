@@ -1,0 +1,11 @@
+# Secrets and local configuration
+backend/.env
+.env
+.env.*
+!.env.example
+
+# Dependencies and local logs
+node_modules/
+backend/node_modules/
+npm-debug.log*
+.DS_Store
