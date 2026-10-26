@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#245c3a">
+<title>Simple Kisan Mitra | मौसम और AI Chat</title>
+<style>
+:root{font-family:Arial, sans-serif;color:#21352a;background:#f5f7ef}*{box-sizing:border-box}body{margin:0}.top{background:#245c3a;color:white;padding:22px max(18px,calc((100% - 900px)/2))}.top h1{margin:0;font-size:26px}.top p{margin:7px 0 0;color:#e1efdf}.wrap{max-width:900px;margin:24px auto;padding:0 16px;display:grid;gap:18px}.card{background:white;border:1px solid #dfe7d9;border-radius:14px;padding:20px;box-shadow:0 5px 18px #193b190a}.card h2{margin:0 0 8px;font-size:21px}.muted{color:#68766b;font-size:14px;margin:0 0 16px}label{display:block;font-weight:700;font-size:14px;margin:10px 0 7px}input,textarea,select{width:100%;font:inherit;border:1px solid #cbd7c8;border-radius:9px;padding:12px;background:#fff;color:#21352a}textarea{resize:vertical;min-height:85px}button{border:0;background:#245c3a;color:white;padding:11px 16px;border-radius:9px;font-weight:700;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.formrow{display:flex;gap:9px}.formrow input{flex:1}.result{margin-top:14px;background:#f2f6ed;border-radius:10px;padding:13px;line-height:1.55;white-space:pre-wrap}.chatlog{display:grid;gap:10px;margin-top:14px}.msg{padding:12px 14px;border-radius:11px;line-height:1.5;white-space:pre-wrap}.user{background:#e1efdf;margin-left:22px}.bot{background:#f2f6ed;margin-right:22px}.foot{text-align:center;color:#758176;font-size:12px;padding:0 0 22px}@media(min-width:720px){.wrap{grid-template-columns:1fr 1fr}.chatcard{grid-column:1/-1}}@media(max-width:480px){.formrow{flex-direction:column}.card{padding:16px}}
+</style>
+</head>
+<body>
+<header class="top"><h1>🌾 Kisan Mitra</h1><p>सिर्फ मौसम और खेती के सवालों के लिए सरल सहायक</p></header>
+<main class="wrap">
+<section class="card">
+<h2>🌦️ मौसम देखें</h2><p class="muted">अपने शहर का नाम लिखें और अभी का मौसम जानें।</p>
+<form id="weatherForm"><label for="city">शहर का नाम</label><div class="formrow"><input id="city" value="Mathura" maxlength="80" required placeholder="जैसे Mathura"><button id="weatherBtn">मौसम देखें</button></div></form>
+<div id="weatherResult" class="result" aria-live="polite">शहर का नाम डालकर मौसम देखें।</div>
+</section>
+<section class="card chatcard">
+<h2>💬 AI से बात करें</h2><p class="muted">बीज, सिंचाई, मिट्टी और फसल की देखभाल से जुड़े सवाल पूछें।</p>
+<label for="language">जवाब की भाषा</label><select id="language"><option value="hi">हिंदी</option><option value="en">English</option></select>
+<div id="chatlog" class="chatlog" aria-live="polite"></div>
+<form id="chatForm"><label for="question">आपका सवाल</label><textarea id="question" maxlength="2000" required placeholder="जैसे गेहूँ में पानी कब देना चाहिए?"></textarea><div style="margin-top:10px;text-align:right"><button id="sendBtn">सवाल भेजें →</button></div></form>
+</section>
+</main>
+<footer class="foot">Kisan Mitra · मौसम सेवा: Open-Meteo · AI जवाब के लिए सर्वर कॉन्फ़िगरेशन जरूरी है</footer>
+<script>
+const $=id=>document.getElementById(id);
+$('weatherForm').addEventListener('submit',async e=>{e.preventDefault();const btn=$('weatherBtn');btn.disabled=true;btn.textContent='लोड हो रहा है…';$('weatherResult').textContent='मौसम की जानकारी लाई जा रही है…';try{const r=await fetch('/api/weather?city='+encodeURIComponent($('city').value.trim()));const d=await r.json();if(!r.ok)throw Error(d.error||'मौसम नहीं मिल पाया।');$('weatherResult').textContent='📍 '+d.location+'\n🌡️ तापमान: '+d.temperature+'°C\n🤗 महसूस होने वाला तापमान: '+d.apparentTemperature+'°C\n💧 नमी: '+d.humidity+'%\n🌧️ वर्षा: '+d.precipitation+' mm\n💨 हवा: '+d.windSpeed+' km/h\n\nसमय: '+d.time;}catch(err){$('weatherResult').textContent=err.message||'मौसम सेवा से कनेक्शन नहीं हुआ।';}finally{btn.disabled=false;btn.textContent='मौसम देखें';}});
+function addMsg(text,who){const el=document.createElement('div');el.className='msg '+who;el.textContent=text;$('chatlog').appendChild(el);el.scrollIntoView({block:'nearest',behavior:'smooth'});return el;}
+$('chatForm').addEventListener('submit',async e=>{e.preventDefault();const question=$('question').value.trim();if(!question)return;addMsg(question,'user');$('question').value='';const btn=$('sendBtn');btn.disabled=true;btn.textContent='जवाब आ रहा है…';const answer=addMsg('किसान मित्र जवाब तैयार कर रहा है…','bot');try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,language:$('language').value})});const d=await r.json();if(!r.ok)throw Error(d.error||'AI से जवाब नहीं मिला।');answer.textContent=d.answer||'जवाब उपलब्ध नहीं है।';}catch(err){answer.textContent='समस्या: '+(err.message||'AI से कनेक्शन नहीं हुआ।');}finally{btn.disabled=false;btn.textContent='सवाल भेजें →';$('question').focus();}});
+</script>
+</body>
+</html>
