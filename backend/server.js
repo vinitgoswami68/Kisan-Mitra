@@ -209,7 +209,13 @@ app.get('/api/mandi', async (req, res) => {
       message = 'सरकारी data.gov.in सेवा में अस्थायी समस्या है। बाद में फिर कोशिश करें।';
       diagnostic = 'government_service_error';
     }
-    return res.status(502).json({ error: message, diagnostic });
+    // Include a short network cause so remote failures can be diagnosed without opening Render logs.
+    // Never return the request URL or query string because it contains the API key.
+    const causeMatch = detail.match(/\((ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|UND_ERR_CONNECT_TIMEOUT|fetch failed|network error|HTTP \d{3})\)/i);
+    const safeCause = causeMatch ? causeMatch[1] : (
+      /Could not connect/i.test(detail) ? 'Could not connect to data.gov.in after retries' : 'Upstream request failed'
+    );
+    return res.status(502).json({ error: message, diagnostic, detail: safeCause });
   }
 });
 
